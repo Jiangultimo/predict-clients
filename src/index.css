@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-display: 'Space Grotesk', 'Avenir Next', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+  --bg: #020202;
+  --bg-elevated: #070707;
+  --bg-panel: rgba(8, 8, 8, 0.86);
+  --bg-panel-strong: rgba(6, 6, 6, 0.96);
+  --bg-soft: rgba(242, 240, 234, 0.045);
+  --text: #f2f0ea;
+  --text-muted: #a7a19d;
+  --text-soft: #6f6a67;
+  --line: rgba(242, 240, 234, 0.16);
+  --line-strong: rgba(249, 168, 236, 0.46);
+  --pink: #f9a8ec;
+  --pink-soft: rgba(249, 168, 236, 0.16);
+  --cyan: #52f0ff;
+  --cyan-soft: rgba(82, 240, 255, 0.12);
+  --green: #9aff38;
+  --green-soft: rgba(154, 255, 56, 0.13);
+  --amber: #ffcc33;
+  --amber-soft: rgba(255, 204, 51, 0.14);
+  --red: #ff637a;
+  --red-soft: rgba(255, 99, 122, 0.14);
+  --blue: #72a7ff;
+  --blue-soft: rgba(114, 167, 255, 0.14);
+  --black-alpha-1: rgba(0, 0, 0, 0.22);
+  --black-alpha-2: rgba(0, 0, 0, 0.56);
+  --white-alpha-1: rgba(255, 255, 255, 0.08);
+  --white-alpha-2: rgba(255, 255, 255, 0.14);
+  --shadow-cyan: 0 0 34px rgba(85, 241, 255, 0.24);
+  --shadow-green: 0 0 28px rgba(166, 255, 77, 0.2);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --content-max: 1220px;
+
+  font-family: var(--font-display);
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100svh;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(242, 240, 234, 0.055) 0,
+      rgba(242, 240, 234, 0.055) 1px,
+      transparent 1px,
+      transparent 5px
+    ),
+    linear-gradient(90deg, rgba(249, 168, 236, 0.055) 1px, transparent 1px),
+    linear-gradient(rgba(242, 240, 234, 0.04) 1px, transparent 1px),
+    var(--bg);
+  background-size: auto, 64px 64px, 64px 64px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+}
