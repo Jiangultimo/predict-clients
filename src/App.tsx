@@ -52,6 +52,7 @@ type ChatMessage = {
   agentId?: string
   agentContext?: ChatAgentContext
   mentions?: ChatAgentContext[]
+  pushed?: boolean
   typewriter?: boolean
 }
 
@@ -65,6 +66,8 @@ const starterQuestions = [
   '这个市场背后的核心变量是什么？',
   '反向证据和结算风险在哪里？',
 ]
+
+const marketPanelLoadingMs = 720
 
 const landingSignals = [
   'Election market 57%',
@@ -185,6 +188,7 @@ function App() {
         role: 'system',
         text: `${firstAgent.name} 的数字分身已经上线。最新预测市场信号已推送，你可以直接追问动因、变量和风险。`,
         agentId: firstAgent.id,
+        pushed: true,
       },
     ])
     setStep('room')
@@ -335,6 +339,7 @@ function App() {
                   role: 'system',
                   text: `${agent.name} 的数字分身切换完成。最新预测市场信号已推送到中间频道。`,
                   agentId: agent.id,
+                  pushed: true,
                 },
               ])
             }}
@@ -744,6 +749,9 @@ function PredictionRoom({
   const chatFeedRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<HTMLFormElement>(null)
   const [mentionIndex, setMentionIndex] = useState(0)
+  const [loadedMarketAgentId, setLoadedMarketAgentId] = useState<string | null>(
+    null,
+  )
   const mentionQuery = getMentionQuery(chatInput)
   const mentionAgents = mentionQuery
     ? ownedAgents.filter((agent) => matchesOwnedAgent(agent, mentionQuery.query))
@@ -752,6 +760,7 @@ function PredictionRoom({
     Boolean(mentionQuery) && mentionAgents.length > 0 && !agentPickerOpen
   const activeMentionIndex =
     mentionAgents.length > 0 ? mentionIndex % mentionAgents.length : 0
+  const marketPicksLoading = loadedMarketAgentId !== activeAgent.id
 
   useEffect(() => {
     const feed = chatFeedRef.current
@@ -780,6 +789,14 @@ function PredictionRoom({
       chatFeedRef.current.scrollTop = chatFeedRef.current.scrollHeight
     }
   }, [messages])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setLoadedMarketAgentId(activeAgent.id)
+    }, marketPanelLoadingMs)
+
+    return () => window.clearTimeout(timer)
+  }, [activeAgent.id])
 
   useEffect(() => {
     if (!agentPickerOpen) {
@@ -980,21 +997,26 @@ function PredictionRoom({
             />
           )}
           <div className="chat-composer-row">
-            <button
-              aria-label="添加 agent 员工"
-              className="composer-tool-button"
-              type="button"
-              onClick={() => onAgentPickerOpen(!agentPickerOpen)}
-            >
-              <Plus size={18} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  aria-label="添加 agent 员工"
+                  className="composer-tool-button"
+                  type="button"
+                  onClick={() => onAgentPickerOpen(!agentPickerOpen)}
+                >
+                  <Plus size={18} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>添加员工 Agent 到当前对话</TooltipContent>
+            </Tooltip>
             <input
               value={chatInput}
               onChange={(event) => handleChatInputChange(event.target.value)}
               onClick={() => onAgentPickerOpen(false)}
               onFocus={() => onAgentPickerOpen(false)}
               onKeyDown={handleComposerKeyDown}
-              placeholder="追问这个分身：为什么概率波动、怎么看、风险在哪里..."
+              placeholder="追问这个分身，或 @员工 Agent 询问数据、风险、新闻..."
             />
             <button type="submit" disabled={!chatInput.trim()}>
               <Send size={18} />
@@ -1006,6 +1028,7 @@ function PredictionRoom({
       <MarketPicksPanel
         activeAgent={activeAgent}
         copiedPickIds={copiedPickIds}
+        loading={marketPicksLoading}
         onCopyTrade={onCopyTrade}
       />
     </section>
@@ -1108,14 +1131,19 @@ function OwnedAgentMentionList({
 function MarketPicksPanel({
   activeAgent,
   copiedPickIds,
+  loading,
   onCopyTrade,
 }: {
   activeAgent: PersonaAgent
   copiedPickIds: string[]
+  loading: boolean
   onCopyTrade: (pickId: string) => void
 }) {
   return (
-    <aside className="intel-panel market-picks-panel">
+    <aside
+      aria-busy={loading}
+      className={`intel-panel market-picks-panel ${loading ? 'loading' : ''}`}
+    >
       <div className="market-panel-header">
         <span className="sidebar-label">Twin positions</span>
         <h2>{activeAgent.name} 关注 / 已预测</h2>
@@ -1124,32 +1152,33 @@ function MarketPicksPanel({
         </p>
       </div>
 
-      <div className="market-pick-list">
+      <div className={`market-pick-list ${loading ? 'loading' : ''}`}>
+        {loading && <MarketPicksLoading />}
         {activeAgent.marketPicks.map((pick) => {
-          const selectedChoice = pick.copyChoices?.find((choice) =>
-            copiedPickIds.includes(`${pick.id}:${choice.id}`),
-          )
-          const statusLabel = pick.position === 'bought' ? '已预测' : '关注中'
-          const predictedChoices = [
-            {
-              id: 'yes',
-              label: 'YES',
-              price: pick.side === 'YES' ? pick.marketPrice : 100 - pick.marketPrice,
-              twinPick: pick.side === 'YES',
-            },
-            {
-              id: 'no',
-              label: 'NO',
-              price: pick.side === 'NO' ? pick.marketPrice : 100 - pick.marketPrice,
-              twinPick: pick.side === 'NO',
-            },
-          ]
+            const selectedChoice = pick.copyChoices?.find((choice) =>
+              copiedPickIds.includes(`${pick.id}:${choice.id}`),
+            )
+            const statusLabel = pick.position === 'bought' ? '已预测' : '关注中'
+            const predictedChoices = [
+              {
+                id: 'yes',
+                label: 'YES',
+                price: pick.side === 'YES' ? pick.marketPrice : 100 - pick.marketPrice,
+                twinPick: pick.side === 'YES',
+              },
+              {
+                id: 'no',
+                label: 'NO',
+                price: pick.side === 'NO' ? pick.marketPrice : 100 - pick.marketPrice,
+                twinPick: pick.side === 'NO',
+              },
+            ]
 
-          return (
-            <article
-              className={`market-pick-card polymarket-card ${pick.position}`}
-              key={pick.id}
-            >
+            return (
+              <article
+                className={`market-pick-card polymarket-card ${pick.position}`}
+                key={pick.id}
+              >
               <div className="polymarket-card-header">
                 <span className="market-avatar" aria-hidden="true">
                   {pick.category.slice(0, 1)}
@@ -1248,11 +1277,34 @@ function MarketPicksPanel({
                   </div>
                 </div>
               )}
-            </article>
-          )
+              </article>
+            )
         })}
       </div>
     </aside>
+  )
+}
+
+function MarketPicksLoading() {
+  return (
+    <div
+      aria-label="正在加载预测卡片"
+      className="market-loading-layer"
+      role="status"
+    >
+      <div className="market-loading-header">
+        <span />
+        <strong>Syncing market feed</strong>
+      </div>
+      {[0, 1].map((item) => (
+        <div className="market-loading-card" key={item}>
+          <span />
+          <strong />
+          <small />
+          <em />
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -1279,7 +1331,11 @@ function ChatBubble({
           : `${activeAgent.name} Twin`
 
   return (
-    <div className={`chat-bubble ${message.role} ${accentClass}`}>
+    <div
+      className={`chat-bubble ${message.role} ${accentClass} ${
+        message.pushed ? 'push-message' : ''
+      }`}
+    >
       <div className="bubble-author">{author}</div>
       <p>{renderMentionedText(displayText, message.mentions)}</p>
       {message.typewriter && typed.isTyping && (

@@ -33,3 +33,22 @@ related: []
 - `npm run build`：通过
 - `npm run lint`：通过
 - 页面级 Playwright 验证：连续重复 `@Risk Guard` 会生成 2 个红色 mention token、2 条红色 agent 回复；plus picker 勾选 agent 后直接显示在右上角头像堆叠。
+
+## Follow-up — 2026-05-29 18:37
+### 追加内容
+- 输入框 placeholder 明确提示用户可以 `@员工 Agent` 询问数据、风险、新闻。
+- 输入框左侧 plus 按钮接入 tooltip，hover 时提示“添加员工 Agent 到当前对话”。
+- 进入 Prediction Room 或切换数字分身时，右侧预测卡片模拟接口 loading；loading 结束后展示该分身的关注/已预测数据。
+- 最新系统消息增加推送动效，进入聊天页和切换分身时用户能感知“新信号推送”。
+- 右侧预测卡片 loading 使用列表内骨架图，不再使用带阴影的浮层；切换分身时真实卡片隐藏，骨架图在 `.market-pick-list` 内原位显示。
+
+### 实现注意
+- `MarketPicksPanel` 通过 `loadedMarketAgentId !== activeAgent.id` 判断 loading，并用 720ms timeout 模拟请求完成。
+- 骨架图必须作为 `.market-pick-list` 的子节点渲染，避免硬编码 `top` 造成错位。
+- loading 入场动画只保留 opacity，不使用纵向 transform，否则切换瞬间会显得骨架图偏上。
+
+### 验证
+- `npm test`：4 files / 19 tests passed
+- `npm run build`：通过
+- `npm run lint`：通过
+- Playwright 验证切换分身时骨架图 `parentClass` 为 `market-pick-list loading`、`offsetFromListTop: 0`、`transform: none`、`boxShadow: none`。

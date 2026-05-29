@@ -1,14 +1,15 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
 afterEach(() => {
+  vi.useRealTimers()
   cleanup()
 })
 
-function enterPredictionRoom() {
+function enterPredictionRoom({ followCount = 1 }: { followCount?: number } = {}) {
   render(<App />)
 
   fireEvent.click(screen.getByRole('button', { name: /Start my forecast desk/ }))
@@ -16,8 +17,17 @@ function enterPredictionRoom() {
   fireEvent.click(screen.getByRole('button', { name: '一周内' }))
   fireEvent.click(screen.getByRole('button', { name: '反向证据' }))
   fireEvent.click(screen.getByRole('button', { name: '推荐可以关注的分身' }))
-  fireEvent.click(screen.getAllByRole('button', { name: 'Follow twin' })[0])
+  screen
+    .getAllByRole('button', { name: 'Follow twin' })
+    .slice(0, followCount)
+    .forEach((button) => fireEvent.click(button))
   fireEvent.click(screen.getByRole('button', { name: '进入 Prediction Room' }))
+}
+
+const chatInputPlaceholder = /@员工 Agent/
+
+function getChatInput() {
+  return screen.getByPlaceholderText(chatInputPlaceholder)
 }
 
 describe('Prediction room market actions', () => {
@@ -82,15 +92,64 @@ describe('Prediction room market actions', () => {
     fireEvent.click(screen.getByRole('button', { name: '添加 agent 员工' }))
     expect(screen.getByRole('dialog', { name: 'Agent employees' })).toBeTruthy()
 
-    fireEvent.click(screen.getByPlaceholderText('追问这个分身：为什么概率波动、怎么看、风险在哪里...'))
+    fireEvent.click(getChatInput())
 
     expect(screen.queryByRole('dialog', { name: 'Agent employees' })).toBeNull()
+  })
+
+  it('hints at @ employee agents and explains the plus button with a tooltip', async () => {
+    enterPredictionRoom()
+
+    expect(getChatInput()).toBeTruthy()
+
+    fireEvent.focus(screen.getByRole('button', { name: '添加 agent 员工' }))
+
+    expect(
+      (await screen.findAllByText('添加员工 Agent 到当前对话')).length,
+    ).toBeGreaterThan(0)
+  })
+
+  it('shows prediction loading and pushed system messages on room entry and twin switch', () => {
+    vi.useFakeTimers()
+    enterPredictionRoom({ followCount: 2 })
+
+    const entryLoading = screen.getByLabelText('正在加载预测卡片')
+    expect(entryLoading).toBeTruthy()
+    expect(
+      entryLoading.parentElement?.classList.contains('market-pick-list'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByText(/最新预测市场信号已推送/)
+        .closest('.chat-bubble')
+        ?.classList.contains('push-message'),
+    ).toBe(true)
+
+    act(() => {
+      vi.advanceTimersByTime(900)
+    })
+
+    expect(screen.queryByLabelText('正在加载预测卡片')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /Mira Macro/ }))
+
+    const switchLoading = screen.getByLabelText('正在加载预测卡片')
+    expect(switchLoading).toBeTruthy()
+    expect(
+      switchLoading.parentElement?.classList.contains('market-pick-list'),
+    ).toBe(true)
+    expect(
+      screen
+        .getByText(/Mira Macro 的数字分身切换完成/)
+        .closest('.chat-bubble')
+        ?.classList.contains('push-message'),
+    ).toBe(true)
   })
 
   it('opens a compact @ agent list, filters it, and selects with keyboard', () => {
     enterPredictionRoom()
 
-    const input = screen.getByPlaceholderText('追问这个分身：为什么概率波动、怎么看、风险在哪里...')
+    const input = getChatInput()
 
     fireEvent.change(input, { target: { value: '@ri' } })
 
@@ -116,7 +175,7 @@ describe('Prediction room market actions', () => {
   it('colors sent @ agent blocks and matching agent replies by the addressed agent', () => {
     enterPredictionRoom()
 
-    const input = screen.getByPlaceholderText('追问这个分身：为什么概率波动、怎么看、风险在哪里...')
+    const input = getChatInput()
 
     fireEvent.change(input, { target: { value: '@ri' } })
     fireEvent.keyDown(input, { key: 'ArrowDown' })
@@ -136,7 +195,7 @@ describe('Prediction room market actions', () => {
   it('keeps repeated @ of an already joined agent as the current reply context', () => {
     enterPredictionRoom()
 
-    const input = screen.getByPlaceholderText('追问这个分身：为什么概率波动、怎么看、风险在哪里...')
+    const input = getChatInput()
 
     function mentionRiskGuardAndSend() {
       fireEvent.change(input, { target: { value: '@ri' } })
