@@ -273,6 +273,14 @@ function App() {
     )
   }
 
+  function toggleOwnedAgent(agentId: string) {
+    setSelectedOwnedAgentIds((current) =>
+      current.includes(agentId)
+        ? current.filter((id) => id !== agentId)
+        : [...current, agentId],
+    )
+  }
+
   return (
     <TooltipProvider
       delayDuration={0}
@@ -318,6 +326,7 @@ function App() {
             onAskAgent={askAgent}
             onCopyTrade={toggleCopyTrade}
             onToggleDraftOwnedAgent={toggleDraftOwnedAgent}
+            onToggleOwnedAgent={toggleOwnedAgent}
             onSelectAgent={(agent) => {
               setActiveAgentId(agent.id)
               setMessages([
@@ -712,6 +721,7 @@ function PredictionRoom({
   onAskAgent,
   onCopyTrade,
   onToggleDraftOwnedAgent,
+  onToggleOwnedAgent,
   onSelectAgent,
 }: {
   activeAgent: PersonaAgent
@@ -728,6 +738,7 @@ function PredictionRoom({
   onAskAgent: (question: string) => void
   onCopyTrade: (pickId: string) => void
   onToggleDraftOwnedAgent: (agentId: string) => void
+  onToggleOwnedAgent: (agentId: string) => void
   onSelectAgent: (agent: PersonaAgent) => void
 }) {
   const chatFeedRef = useRef<HTMLDivElement>(null)
@@ -957,9 +968,8 @@ function PredictionRoom({
         >
           {agentPickerOpen && (
             <OwnedAgentPicker
-              joinedAgentIds={selectedOwnedAgentIds}
-              selectedAgentIds={draftOwnedAgentIds}
-              onToggleAgent={onToggleDraftOwnedAgent}
+              selectedAgentIds={selectedOwnedAgentIds}
+              onToggleAgent={onToggleOwnedAgent}
             />
           )}
           {mentionListOpen && (
@@ -1003,11 +1013,9 @@ function PredictionRoom({
 }
 
 function OwnedAgentPicker({
-  joinedAgentIds,
   selectedAgentIds,
   onToggleAgent,
 }: {
-  joinedAgentIds: string[]
   selectedAgentIds: string[]
   onToggleAgent: (agentId: string) => void
 }) {
@@ -1023,8 +1031,7 @@ function OwnedAgentPicker({
       </div>
       <div className="owned-agent-list">
         {ownedAgents.map((agent) => {
-          const joined = joinedAgentIds.includes(agent.id)
-          const checked = joined || selectedAgentIds.includes(agent.id)
+          const checked = selectedAgentIds.includes(agent.id)
 
           return (
             <label
@@ -1036,7 +1043,6 @@ function OwnedAgentPicker({
               <input
                 aria-label={agent.name}
                 checked={checked}
-                disabled={joined}
                 type="checkbox"
                 onChange={() => onToggleAgent(agent.id)}
               />

@@ -60,7 +60,7 @@ describe('Prediction room market actions', () => {
     expect((await screen.findAllByText('分身已预测')).length).toBeGreaterThan(0)
   })
 
-  it('stages owned agents from plus and stacks them after sending a message', () => {
+  it('joins owned agents immediately when selected from the plus picker', () => {
     enterPredictionRoom()
 
     fireEvent.click(screen.getByRole('button', { name: '添加 agent 员工' }))
@@ -69,13 +69,6 @@ describe('Prediction room market actions', () => {
 
     fireEvent.click(within(picker).getByLabelText('Quant Scout'))
     fireEvent.click(within(picker).getByLabelText('Risk Guard'))
-
-    expect(screen.queryByLabelText('已选择的 agent 员工')).toBeNull()
-
-    const input = screen.getByPlaceholderText('追问这个分身：为什么概率波动、怎么看、风险在哪里...')
-
-    fireEvent.change(input, { target: { value: '一起看一下这个预测' } })
-    fireEvent.submit(input.closest('form') as HTMLFormElement)
 
     const stack = screen.getByLabelText('已选择的 agent 员工')
 
